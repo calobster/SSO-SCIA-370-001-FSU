@@ -28,4 +28,7 @@ You will need to update line 4 in pass_hash.sh to a directory of your choosing, 
 
 # How the SSO and passwords are kept secure.
 
-The password hash generator requires both the username and password to log in, unless it's a first-time login, in which case it prompts the user to create a password and stores the hash in a file. 
+The password hash generator requires both the username and password to log in; for a first-time login, it prompts the user to create a password and stores the hash in a file. 
+The SSO requires a username (admin or auditor) and their password to use. 
+Both the SSO and pass_hash.sh should have execute-only permissions and require an entry in Visudo to remove password requirements. Doing this lets the SSO read and write to both the log file directory and the secure hash file directory without the auditor needing to know the root password. Setting pass_hash.sh to passwordless sudo allows the auditor to use it without needing to know the root password.
+The log files and secure hashes both have all permissions removed and require the root password to read and write to them.
