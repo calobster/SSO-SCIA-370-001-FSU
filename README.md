@@ -22,9 +22,10 @@ The SSO saves and logs:
  1. When the auditor tries to delete log files.
  2. When the auditor creates a process log file.
 
-To log in, you will need to download both PHAdmin.sh and PHAuditor.sh to create hashes for the SSO to verify against the entered passwords. 
-You will need to update line 57 in both PHAdmin.sh and PHAuditor.sh to a directory of your choosing, and lines 3 & 4 in the SSO itself to the directory storing the password hashes generated from PHAdmin.sh and PHAuditor.sh. 
+To log in, you will need to download the pass_hash.sh to create hashes for the SSO to verify against the entered passwords. 
+You will need to update line 4 in pass_hash.sh to a directory of your choosing, and lines 3 & 4 in the SSO itself to the directory storing the password hashes generated from pass_hash.sh. 
 
 
 # How the SSO and passwords are kept secure.
 
+The password hash generator requires both the username and password to log in, unless it's a first-time login, in which case it prompts the user to create a password and stores the hash in a file. 
