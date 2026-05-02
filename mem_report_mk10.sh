@@ -19,9 +19,6 @@ login() {
         stored_hash=$(cat "$AUDITOR_HASH_FILE")
         role="Auditor"
         user_name="auditor"
-    else
-	echo "Invalid username."
-	exit 1	
     fi
 
     input_hash=$(echo -n "$password" | sha256sum | awk '{print $1}')
@@ -31,8 +28,6 @@ login() {
         user_role="$role"
     else
         echo "Invalid credentials."
-        echo $input_hash
-        echo $stored_hash
         exit 1
     fi
 }
