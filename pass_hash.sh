@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Directory to store user credentials
-CREDENTIALS_DIR="/home/kali/secure_hashes"
+CREDENTIALS_DIR="/path/to/secure_hashes"
 
 # Hardcoded usernames
 AUDITOR_USERNAME="auditor"
