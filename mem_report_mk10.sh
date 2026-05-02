@@ -1,0 +1,158 @@
+#!/bin/bash
+
+# Define user database (username: salt: hashed_password: role)
+declare -A users
+users["admin"]="salt123:$(echo -n 'salt123adminpass' | sha256sum | awk '{print $1}'):Administrator"
+users["auditor"]="salt456:$(echo -n 'salt456auditorpass' | sha256sum | awk '{print $1}'):Auditor"
+
+# Function to prompt login
+login() {
+    echo -n "Username: "
+    read username
+    echo -n "Password: "
+    read -s password
+    echo ""
+
+   # if [[ -z "${users[$username]}" ]]; then
+   #     echo "Invalid username."
+   #     exit 1
+   # fi
+
+    IFS=':' read -r salt stored_hash role <<< "${users[$username]}"
+    input_hash=$(echo -n "$salt$password" | sha256sum | awk '{print $1}')
+
+    if [[ "$input_hash" == "$stored_hash" ]]; then
+        echo "Login successful. Role: $role"
+        user_role="$users"
+        user_name="$username"
+    else
+        echo "Invalid credentials."
+        exit 1
+    fi
+}
+
+# Directory where logs and checksum files will be stored
+LOG_DIR="/log_files"
+
+# Function to record audit logs
+record_audit() {
+    local log_dir="/log_files"
+    local log_file="$log_dir/audit.log"
+    echo "$(date): $1" >> "$log_file"
+}
+
+log_processes() {
+    local role="$1"  # Pass role as argument: "Admin" or "Auditor"
+    local timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
+    local log_file="${LOG_DIR}/process_log_${timestamp}.log"
+    local checksum_file="${log_file}.sha256"
+    local user_id=$(id -u)
+    local creator_user=$(whoami)
+
+    # Start new log with metadata
+    {
+        echo "Process Enumeration Log - ${timestamp}"
+        echo "Role: $user_name"
+        echo "Created by User: $creator_user (UID: $user_id)"
+        echo "Creation Timestamp: ${timestamp}"
+        echo "-------------------------------------"
+    } > "$log_file"
+
+    # Append process info
+    for pid in /proc/[0-9]*; do
+        pid_num=$(basename "$pid")
+        if [[ -f "$pid/stat" ]]; then
+            owner=$(stat -c '%U' "$pid")
+            process_name=$(cat "$pid/comm")
+            if [[ "$user_name" == "auditor" && "$owner" == "root" ]]; then
+                # Audit alert for restricted access
+                record_audit "Security Alert: $user_name attempted to view root process $pid_num ($process_name)"
+                echo "Access denied to process $pid_num owned by root." >> "$log_file"
+            else
+                state=$(awk '{print $3}' "$pid/stat")
+                echo "PID: $pid_num, Process: $process_name, State: $state, Owner: $owner" >> "$log_file"
+            fi
+        fi
+    done
+
+    # Generate checksum and store it
+    sha256sum "$log_file" | awk '{print $1}' > "$checksum_file"
+
+    echo "Process log saved to $log_file"
+    echo "Checksum stored in $checksum_file"
+}
+
+# Function to verify integrity of the log file
+verify_log_integrity() {
+    local log_dir="$LOG_DIR"
+    # Find the latest log and checksum file based on timestamp
+    local log_file=$(ls -t "$log_dir"/process_log_*.log | head -n 1)
+    local checksum_file="${log_file}.sha256"
+
+    if [[ ! -f "$log_file" || ! -f "$checksum_file" ]]; then
+        echo "Log file or checksum file missing!"
+        return 1
+    fi
+
+    local current_checksum=$(sha256sum "$log_file" | awk '{print $1}')
+    local stored_checksum=$(cat "$checksum_file")
+
+    if [[ "$current_checksum" == "$stored_checksum" ]]; then
+        echo "Integrity check passed. Log file is unaltered."
+        return 0
+    else
+        echo "WARNING: Log file has been tampered with!"
+        return 1
+    fi
+}
+
+# Function to delete logs (only admin)
+delete_logs() {
+    if [[ "$user_name" != "admin" ]]; then
+        record_audit "Security Alert: $user_name attempted to delete logs"
+        echo "Access denied. $user_name are not authorized to delete logs."
+        return
+    fi
+
+    local log_dir="/log_files"
+    
+    # Delete all log files except audit.log
+    find "$log_dir" -type f ! -name "audit.log" -exec rm -v {} +
+    record_audit "Security Alert: $user_name deleted logs"
+    echo "Logs deleted."
+}
+
+# Function to run system monitoring with watch
+system_monitor() {
+    if [[ "$user_name" != "admin" ]]; then
+        top -U '!root'
+        return
+    fi
+    echo "Starting system monitor. Press Ctrl+C to exit."
+    # Example: monitor CPU and memory usage
+    # watch -n 1 'ps aux --sort=-%cpu'
+    top
+}
+
+# Main program
+login
+
+# Example menu
+while true; do
+    echo ""
+    echo "Select an option:"
+    echo "1. Log_processes"
+    echo "2. Verify log integrity"
+    echo "3. Delete logs"
+    echo "4. System monitoring"
+    echo "5. Exit"
+    read -p "Choice: " choice
+    case "$choice" in
+        1) log_processes ;;
+        2) verify_log_integrity;;
+        3) delete_logs ;;
+        4) system_monitor ;;
+        5) echo "Goodbye."; exit 0 ;;
+        *) echo "Invalid option." ;;
+    esac
+done
