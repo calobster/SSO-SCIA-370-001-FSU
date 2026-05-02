@@ -9,7 +9,7 @@ hash_password() {
   echo -n "$1" | openssl dgst -sha256 | awk '{print $2}'
 }
 
-## Function to prompt user for password input and hash it
+# Function to prompt user for password input and hash it
 create_password_and_hash() {
   echo -n "Enter your new password:"
   read -s password
