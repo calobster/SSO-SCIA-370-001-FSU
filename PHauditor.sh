@@ -18,6 +18,7 @@ create_password_and_hash() {
   # echo "Hashed password: $hashed_password"
   echo ""
 }
+
 # Function to display options
 display_menu() {
   echo "Select an option:"
