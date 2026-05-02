@@ -11,8 +11,9 @@ hash_password() {
 
 # Function to prompt user for password input and hash it
 create_password_and_hash() {
-  read -p "Enter your password: " password
-  echo "Your password: $password"
+  echo -n "Enter your new password:"
+  read -s password
+  #echo "Your password: $password"
   hashed_password=$(hash_password "$password")
   echo "Hashed password: $hashed_password"
 }
@@ -52,7 +53,8 @@ while true; do
     4)
       if [ -n "$hashed_password" ]; then
         read -p "Enter filename to save the hash: " filename
-        echo "$hashed_password" > "$filename"
+        save_dir="/path/to/secure_hashes"
+        echo "$hashed_password" > "$save_dir/$filename"
         echo "Hashed password saved to $filename"
       else
         echo "No hash to save. Enter a password first."
