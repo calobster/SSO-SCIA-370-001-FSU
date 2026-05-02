@@ -1,9 +1,7 @@
 #!/bin/bash
-
-# Define user database (username: salt: hashed_password: role)
-declare -A users
-users["admin"]="salt123:$(echo -n 'salt123adminpass' | sha256sum | awk '{print $1}'):Administrator"
-users["auditor"]="salt456:$(echo -n 'salt456auditorpass' | sha256sum | awk '{print $1}'):Auditor"
+# Paths to hash files
+ADMIN_HASH_FILE="/path/to/password/admin/hash/file"
+AUDITOR_HASH_FILE="/path/to/password/auditor/hash/file"
 
 # Function to prompt login
 login() {
@@ -13,20 +11,28 @@ login() {
     read -s password
     echo ""
 
-   # if [[ -z "${users[$username]}" ]]; then
-   #     echo "Invalid username."
-   #     exit 1
-   # fi
+    if [[ "$username" == "admin" ]]; then
+        stored_hash=$(cat "$ADMIN_HASH_FILE")
+        role="Administrator"
+        user_name="admin"
+    elif [[ "$username" == "auditor" ]]; then
+        stored_hash=$(cat "$AUDITOR_HASH_FILE")
+        role="Auditor"
+        user_name="auditor"
+    else
+	echo "Invalid username."
+	exit 1	
+    fi
 
-    IFS=':' read -r salt stored_hash role <<< "${users[$username]}"
-    input_hash=$(echo -n "$salt$password" | sha256sum | awk '{print $1}')
+    input_hash=$(echo -n "$password" | sha256sum | awk '{print $1}')
 
     if [[ "$input_hash" == "$stored_hash" ]]; then
         echo "Login successful. Role: $role"
-        user_role="$users"
-        user_name="$username"
+        user_role="$role"
     else
         echo "Invalid credentials."
+        echo $input_hash
+        echo $stored_hash
         exit 1
     fi
 }
