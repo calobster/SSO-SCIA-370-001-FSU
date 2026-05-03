@@ -126,9 +126,10 @@ while true; do
         4)
           # Save hashed password to a file
           if [ -f "$CREDENTIALS_DIR/$username" ]; then
-            filename="${username}_password_backup.txt"
-            cp "$CREDENTIALS_DIR/$username" "$filename"
-            echo "Hashed password saved to $filename."
+            current_hash=$(get_stored_hash "$username")
+            echo $current_hash > "$CREDENTIALS_DIR/$username"
+            # cp "$CREDENTIALS_DIR/$username" "$filename"
+            echo "Hashed password saved to ${username}"
           else
             echo "No password to save."
           fi
