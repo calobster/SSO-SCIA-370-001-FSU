@@ -1,7 +1,7 @@
 #!/bin/bash
 # Paths to hash files
-ADMIN_HASH_FILE="/home/kali/secure_hashes/admin"
-AUDITOR_HASH_FILE="/home/kali/secure_hashes/auditor"
+ADMIN_HASH_FILE="/path/to/secure_hashes/admin"
+AUDITOR_HASH_FILE="/path/to/secure_hashes/auditor"
 
 # Function to prompt login
 login() {
@@ -33,11 +33,11 @@ login() {
 }
 
 # Directory where logs and checksum files will be stored
-LOG_DIR="/home/kali/log_files"
-LOG_DIR_ADMIN="/home/kali/log_files/admin"
+LOG_DIR="/path/to/log_files"
+LOG_DIR_ADMIN="/path/to/log_files/admin"
 # Function to record audit logs
 record_audit() {
-    local log_dir_admin="/home/kali/log_files/admin"
+    local log_dir_admin="/path/to/log_files/admin"
     local log_file="$log_dir_admin/audit.log"
     echo "$(date): $1" >> "$log_file"
 }
@@ -76,17 +76,24 @@ log_processes() {
         pid_num=$(basename "$pid")
         if [[ -f "$pid/stat" ]]; then
             owner=$(stat -c '%U' "$pid")
-            process_name=$(cat "$pid/comm")
-            if [[ "$user_name" == "auditor" && "$owner" == "root" ]]; then
-                # Audit alert for restricted access
-                record_audit "Security Alert: $user_name attempted to view root process $pid_num ($process_name)"
-                echo "Access denied to process $pid_num owned by root." >> "$log_file"
-            else
-                state=$(awk '{print $3}' "$pid/stat")
-                echo "PID: $pid_num, Process: $process_name, State: $state, Owner: $owner" >> "$log_file_admin"
-            fi
+        process_name=$(cat "$pid/comm" 2>/dev/null)
+        # Handle potential errors reading process info
+        if [[ -z "$process_name" ]]; then
+            process_name="N/A"
         fi
-    done
+
+	if [[ "$user_name" == "auditor" && "$owner" == "root" ]]; then
+		: #do nothing
+		elif [[ "$user_name" == "admin" ]]; then
+    		# Log admin processes separately
+    		echo "PID: $pid_num, Process: $process_name, State: $state, Owner: $owner" >> "$log_file_admin"
+	else
+    		# Log other processes
+    	echo "PID: $pid_num, Process: $process_name, State: $state, Owner: $owner" >> "$log_file"
+      fi
+    fi
+    
+done
     if [[ "$user_name" == "admin" ]]; then
        # Generate checksum and store it
        sha256sum "$log_file_admin" | awk '{print $1}' > "$checksum_file_admin"
@@ -94,6 +101,8 @@ log_processes() {
        echo "Checksum stored in $checksum_file_admin"
     else 
        sha256sum "$log_file" | awk '{print $1}' > "$checksum_file"
+       # Audit alert for logging processes
+       record_audit "Security Alert: $user_name logged processes"
        echo "Process log saved to $log_file"
        echo "Checksum stored in $checksum_file"
     fi
@@ -124,6 +133,29 @@ verify_log_integrity() {
     fi
 }
 
+verify_admin_log_integrity() {
+    local log_dir="$LOG_DIR_ADMIN"
+    # Find the latest log and checksum file based on timestamp
+    local log_file=$(ls -t "$log_dir"/process_log_*.log | head -n 1)
+    local checksum_file="${log_file}.sha256"
+
+    if [[ ! -f "$log_file" || ! -f "$checksum_file" ]]; then
+        echo "Log file or checksum file missing!"
+        return 1
+    fi
+
+    local current_checksum=$(sha256sum "$log_file" | awk '{print $1}')
+    local stored_checksum=$(cat "$checksum_file")
+
+    if [[ "$current_checksum" == "$stored_checksum" ]]; then
+        echo "Integrity check passed. Log file is unaltered."
+        return 0
+    else
+        echo "WARNING: Log file has been tampered with!"
+        return 1
+    fi
+}
+
 # Function to delete logs (only admin)
 delete_logs() {
     if [[ "$user_name" != "admin" ]]; then
@@ -132,10 +164,12 @@ delete_logs() {
         return
     fi
 
-    local log_dir="/log_files"
+    local log_dir="/path/to/log_files"
+    local log_dir_admin="/path/to/log_files/admin"
     
     # Delete all log files except audit.log
     find "$log_dir" -type f ! -name "audit.log" -exec rm -v {} +
+    find "$log_dir_admin" -type f ! -name "audit.log" -exec rm -v {} +
     record_audit "Security Alert: $user_name deleted logs"
     echo "Logs deleted."
 }
@@ -161,16 +195,18 @@ while true; do
     echo "Select an option:"
     echo "1. Log_processes"
     echo "2. Verify log integrity"
-    echo "3. Delete logs"
-    echo "4. System monitoring"
-    echo "5. Exit"
+    echo "3. Verify admin log integrity"
+    echo "4. Delete logs"
+    echo "5. System monitoring"
+    echo "6. Exit"
     read -p "Choice: " choice
     case "$choice" in
         1) log_processes ;;
         2) verify_log_integrity;;
-        3) delete_logs ;;
-        4) system_monitor ;;
-        5) echo "Goodbye."; exit 0 ;;
+        3) verify_admin_log_integrity;;
+        4) delete_logs ;;
+        5) system_monitor ;;
+        6) echo "Goodbye."; exit 0 ;;
         *) echo "Invalid option." ;;
     esac
 done
