@@ -1,7 +1,7 @@
 #!/bin/bash
 # Paths to hash files
-ADMIN_HASH_FILE="/path/to/password/admin/hash/file"
-AUDITOR_HASH_FILE="/path/to/password/auditor/hash/file"
+ADMIN_HASH_FILE="/home/kali/secure_hashes/admin"
+AUDITOR_HASH_FILE="/home/kali/secure_hashes/auditor"
 
 # Function to prompt login
 login() {
@@ -33,12 +33,12 @@ login() {
 }
 
 # Directory where logs and checksum files will be stored
-LOG_DIR="/log_files"
-
+LOG_DIR="/home/kali/log_files"
+LOG_DIR_ADMIN="/home/kali/log_files/admin"
 # Function to record audit logs
 record_audit() {
-    local log_dir="/log_files"
-    local log_file="$log_dir/audit.log"
+    local log_dir_admin="/home/kali/log_files/admin"
+    local log_file="$log_dir_admin/audit.log"
     echo "$(date): $1" >> "$log_file"
 }
 
@@ -47,10 +47,13 @@ log_processes() {
     local timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
     local log_file="${LOG_DIR}/process_log_${timestamp}.log"
     local checksum_file="${log_file}.sha256"
+    local log_file_admin="${LOG_DIR_ADMIN}/process_log_${timestamp}.log"
+    local checksum_file_admin="${log_file_admin}.sha256"
     local user_id=$(id -u)
     local creator_user=$(whoami)
 
     # Start new log with metadata
+    if [[ "$user_name" == "auditor" ]]; then
     {
         echo "Process Enumeration Log - ${timestamp}"
         echo "Role: $user_name"
@@ -58,6 +61,15 @@ log_processes() {
         echo "Creation Timestamp: ${timestamp}"
         echo "-------------------------------------"
     } > "$log_file"
+    else
+    {
+        echo "Process Enumeration Log - ${timestamp}"
+        echo "Role: $user_name"
+        echo "Created by User: $creator_user (UID: $user_id)"
+        echo "Creation Timestamp: ${timestamp}"
+        echo "-------------------------------------"
+    } > "$log_file_admin"
+    fi
 
     # Append process info
     for pid in /proc/[0-9]*; do
@@ -71,16 +83,21 @@ log_processes() {
                 echo "Access denied to process $pid_num owned by root." >> "$log_file"
             else
                 state=$(awk '{print $3}' "$pid/stat")
-                echo "PID: $pid_num, Process: $process_name, State: $state, Owner: $owner" >> "$log_file"
+                echo "PID: $pid_num, Process: $process_name, State: $state, Owner: $owner" >> "$log_file_admin"
             fi
         fi
     done
-
-    # Generate checksum and store it
-    sha256sum "$log_file" | awk '{print $1}' > "$checksum_file"
-
-    echo "Process log saved to $log_file"
-    echo "Checksum stored in $checksum_file"
+    if [[ "$user_name" == "admin" ]]; then
+       # Generate checksum and store it
+       sha256sum "$log_file_admin" | awk '{print $1}' > "$checksum_file_admin"
+       echo "Process log saved to $log_file_admin"
+       echo "Checksum stored in $checksum_file_admin"
+    else 
+       sha256sum "$log_file" | awk '{print $1}' > "$checksum_file"
+       echo "Process log saved to $log_file"
+       echo "Checksum stored in $checksum_file"
+    fi
+    
 }
 
 # Function to verify integrity of the log file
