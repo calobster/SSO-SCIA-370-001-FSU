@@ -36,7 +36,7 @@ The log files and secure hashes both have all permissions removed and require th
 # Set Up
 
 1. Add both programs to visudo under "# Allow members of group sudo to execute any command" with no spaces between lines.
-2. set both programs to execute only with chmod 111.
+2. Set both programs to execute only with chmod 111. eg. "sudo chmod 111 ./sys_report_mk11.sh"
 3. Set up a directory to store the generated hashes and set it up with no privilages.
 4. Set up a directory to store log process snapshots with read only privilages with a subdirectory for admin requested snapshots that is set up with no privilages.
 5. Start up the hash generator and set up a password for both the admin and auditor, doing this will make it so that the SSO runs properly and makes anyone else attempting to change their passwords after the fact require the password that was set-up beforehand.
