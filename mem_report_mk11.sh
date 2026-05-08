@@ -1,7 +1,7 @@
 #!/bin/bash
 # Paths to hash files
-ADMIN_HASH_FILE="/path/to/secure_hashes/admin"
-AUDITOR_HASH_FILE="/path/to/secure_hashes/auditor"
+ADMIN_HASH_FILE="/home/vboxuser/secure_hashes/admin"
+AUDITOR_HASH_FILE="/home/vboxuser/secure_hashes/auditor"
 
 # Function to prompt login
 login() {
@@ -33,11 +33,11 @@ login() {
 }
 
 # Directory where logs and checksum files will be stored
-LOG_DIR="/path/to/log_files"
-LOG_DIR_ADMIN="/path/to/log_files/admin"
+LOG_DIR="/home/vboxuser/log_files"
+LOG_DIR_ADMIN="/home/vboxuser/log_files/admin"
 # Function to record audit logs
 record_audit() {
-    local log_dir_admin="/path/to/log_files/admin"
+    local log_dir_admin="/home/vboxuser/log_files/admin"
     local log_file="$log_dir_admin/audit.log"
     echo "$(date): $1" >> "$log_file"
 }
@@ -109,6 +109,10 @@ done
     
 }
 
+ram_swap() {
+	vmstat -s
+}
+
 # Function to verify integrity of the log file
 verify_log_integrity() {
     local log_dir="$LOG_DIR"
@@ -164,8 +168,8 @@ delete_logs() {
         return
     fi
 
-    local log_dir="/path/to/log_files"
-    local log_dir_admin="/path/to/log_files/admin"
+    local log_dir="/home/vboxuser/log_files"
+    local log_dir_admin="/home/vboxuser/log_files/admin"
     
     # Delete all log files except audit.log
     find "$log_dir" -type f ! -name "audit.log" -exec rm -v {} +
@@ -194,19 +198,21 @@ while true; do
     echo ""
     echo "Select an option:"
     echo "1. Log_processes"
-    echo "2. Verify log integrity"
-    echo "3. Verify admin log integrity"
-    echo "4. Delete logs"
-    echo "5. System monitoring"
-    echo "6. Exit"
+    echo "2. swap ram"
+    echo "3. Verify log integrity"
+    echo "4. Verify admin log integrity"
+    echo "5. Delete logs"
+    echo "6. System monitoring"
+    echo "7. Exit"
     read -p "Choice: " choice
     case "$choice" in
         1) log_processes ;;
-        2) verify_log_integrity;;
-        3) verify_admin_log_integrity;;
-        4) delete_logs ;;
-        5) system_monitor ;;
-        6) echo "Goodbye."; exit 0 ;;
+        2) ram_swap;;
+        3) verify_log_integrity;;
+        4) verify_admin_log_integrity;;
+        5) delete_logs ;;
+        6) system_monitor ;;
+        7) echo "Goodbye."; exit 0 ;;
         *) echo "Invalid option." ;;
     esac
 done
