@@ -32,3 +32,14 @@ The password hash generator requires both the username and password to log in; f
 The SSO requires a username (admin or auditor) and their password to use. 
 Both the SSO and pass_hash.sh should have execute-only permissions and require an entry in Visudo to remove password requirements. Doing this lets the SSO read and write to both the log file directory and the secure hash file directory without the auditor needing to know the root password. Setting pass_hash.sh to passwordless sudo allows the auditor to use it without needing to know the root password.
 The log files and secure hashes both have all permissions removed and require the root password to read and write to them.
+
+# Set Up
+
+1. Add both programs to visudo under "# Allow members of group sudo to execute any command" with no spaces between lines.
+2. set both programs to execute only with chmod 111.
+3. Set up a directory to store the generated hashes and set it up with no privilages.
+4. Set up a directory to store log process snapshots with read only privilages with a subdirectory for admin requested snapshots that is set up with no privilages.
+5. Start up the hash generator and set up a password for both the admin and auditor, doing this will make it so that the SSO runs properly and makes anyone else attempting to change their passwords after the fact require the password that was set-up beforehand.
+
+# Enviroments that it runs on
+1. So far we tested it and it runs on both Ubuntu and Kali Linux. So it should be able to run on most if not all distributions based off of Debian.
